@@ -5,6 +5,9 @@
 #include <cctype>
 #include <cstring>
 
+const int MaxComLen = 10;
+const int MaxArgLen = 32;
+
 struct lineIndex {
     char *startIndex;
     char *endIndex;
@@ -32,26 +35,40 @@ int main() {
 
     lineIndex *index = readTextFromFile(inPath, buffer, &programSize, &lines);
 
-    char cur = 0;
     char *binBuffer = (char *) calloc(lines * 5, sizeof(char));
     char *bufferStart = binBuffer;
 
     for (size_t i = 0; i < lines; i++) {
-        char str[10] = {};
-        sscanf(index[i].startIndex, "%s", str);
+        char str[MaxComLen] = "";
+        char arg[MaxArgLen] = "";
+        sscanf(index[i].startIndex, "%s%s", str, arg);
 
 #define DEF_CMD(name, num, argType, code) \
             if (strcmp(str, #name) == 0) { \
-                cur = num; \
-                \
-                sprintf(binBuffer, "%c", cur); \
-                binBuffer++; \
-                \
-                if (argType == 1) { \
-                    int arg = 0; \
-                    sscanf(index[i].startIndex, "%*[A-Z]%d", &arg); \
-                    *(int *) binBuffer = arg; \
-                    binBuffer += sizeof(int); \
+                if (argType == 0) { \
+                    sprintf(binBuffer, "%c", num); \
+                    binBuffer++; \
+                } \
+                else { \
+                    if (isdigit(*arg)) { \
+                        sprintf(binBuffer, "%c", num); \
+                        binBuffer++; \
+                        \
+                        *(int *) binBuffer = atoi(arg); \
+                        binBuffer += sizeof(int); \
+                    } \
+                    else if (isalpha(*arg)) { \
+                        char *xPointer = arg; \
+                        for (xPointer; *xPointer != '\0'; xPointer++) {} \
+                        xPointer--; \
+                        \
+                        if (*xPointer == 'x') { \
+                            sprintf(binBuffer, "%c", num + 10); \
+                            binBuffer++; \
+                            sprintf(binBuffer, "%c", *(xPointer - 1)); \
+                            binBuffer++; \
+                        }\
+                    }\
                 } \
             } \
             else

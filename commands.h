@@ -20,7 +20,8 @@ DEF_CMD(ADD, 2, 0, {
 })
 
 DEF_CMD(SUB, 3, 0, {
-    stackPush(&cpuStk, stkPop(&cpuStk) - stkPop(&cpuStk));
+    int tmp = stkPop(&cpuStk);
+    stackPush(&cpuStk, stkPop(&cpuStk) - tmp);
     cur++;
     break;
 })
@@ -32,7 +33,28 @@ DEF_CMD(MUL, 4, 0, {
 })
 
 DEF_CMD(DIV, 5, 0, {
-    stackPush(&cpuStk, stkPop(&cpuStk) / stkPop(&cpuStk));
+    int tmp = stkPop(&cpuStk);
+    stackPush(&cpuStk, stkPop(&cpuStk) / tmp);
+    cur++;
+    break;
+})
+
+DEF_CMD(POP, 6, 2, {
+    registers[*cur - 'a'] = stkPop(&cpuStk);
+    cur++;
+    break;
+})
+
+DEF_CMD(PUSH, 11, 2, {
+    cur++;
+    stackPush(&cpuStk, registers[*cur - 'a']);
+    cur++;
+    break;
+})
+
+DEF_CMD(POP, 16, 2, {
+    cur++;
+    registers[*cur - 'a'] = stkPop(&cpuStk);
     cur++;
     break;
 })
