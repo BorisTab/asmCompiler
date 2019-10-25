@@ -1,7 +1,7 @@
 PUSH 10
-JMP 17
 PUSH 6
 ADD
+JMP sas
 PUSH 8
 PUSH 3
 SUB
@@ -9,7 +9,10 @@ MUL
 PUSH 20
 DIV
 POP ax
+sas:
 PUSH 12
+JMP sos
 PUSH ax
 DIV
+sos:
 END

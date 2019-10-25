@@ -4,13 +4,19 @@
 #include <cstdlib>
 #include <cctype>
 #include <cstring>
+#include <map>
 
-const int MaxComLen = 10;
-const int MaxArgLen = 32;
+const int MaxComLen = 16;
+const int MaxArgLen = 16;
 
 struct lineIndex {
     char *startIndex;
     char *endIndex;
+};
+
+struct tag {
+    char *tagName;
+    size_t tagByte;
 };
 
 int getFileSize(const char *inPath);
@@ -22,6 +28,10 @@ int nRows(const char *str, size_t textSize, char element);
 void fillIndex(lineIndex *index, char *text, size_t textSize);
 
 lineIndex *readTextFromFile(const char inPath[], char *text, size_t *textSize, size_t *rows);
+
+void parser(int num, int argType, char **binBuffer, char *arg);
+
+void secondParser(int argType, char **binBuffer, char *arg);
 
 int main() {
     char inPath[FILENAME_MAX] = "../program-v1.asm";
@@ -35,45 +45,70 @@ int main() {
 
     lineIndex *index = readTextFromFile(inPath, buffer, &programSize, &lines);
 
-    char *binBuffer = (char *) calloc(lines * 5, sizeof(char));
+    char *binBuffer = (char *) calloc(lines * (MaxComLen + MaxArgLen + 3), sizeof(char));
     char *bufferStart = binBuffer;
+
+    tag *tagList = (tag *) calloc(lines, sizeof(tag));
 
     for (size_t i = 0; i < lines; i++) {
         char str[MaxComLen] = "";
         char arg[MaxArgLen] = "";
         sscanf(index[i].startIndex, "%s%s", str, arg);
 
+        char *tagPointer = strchr(str, ':');
+        if (tagPointer != nullptr) {
+            tagList[i].tagName = index[i].startIndex;
+            tagList[i].tagByte = (size_t) (binBuffer - bufferStart);
+
+            char *b = tagList[i].tagName;
+        }
+        if (strcmp(str, "JMP") == 0) {
+            *binBuffer = 7;
+            binBuffer++;
+            *(int *) binBuffer = 0;
+            binBuffer += sizeof(int);
+        }
+
 #define DEF_CMD(name, num, argType, code) \
             if (strcmp(str, #name) == 0) { \
-                if (argType == 0) { \
-                    sprintf(binBuffer, "%c", num); \
-                    binBuffer++; \
-                } \
-                else { \
-                    if (isdigit(*arg)) { \
-                        sprintf(binBuffer, "%c", num); \
-                        binBuffer++; \
-                        \
-                        *(int *) binBuffer = atoi(arg); \
-                        binBuffer += sizeof(int); \
-                    } \
-                    else if (isalpha(*arg)) { \
-                        char *xPointer = arg; \
-                        for (xPointer; *xPointer != '\0'; xPointer++) {} \
-                        xPointer--; \
-                        \
-                        if (*xPointer == 'x') { \
-                            sprintf(binBuffer, "%c", num + 10); \
-                            binBuffer++; \
-                            sprintf(binBuffer, "%c", *(xPointer - 1)); \
-                            binBuffer++; \
-                        }\
-                    }\
-                } \
-            } \
-            else
+                parser(num, argType, &binBuffer, arg); \
+            } else
+
             #include "commands.h"
-            printf("Syntax error\n");
+        {}
+#undef DEF_CMD
+    }
+
+    binBuffer = bufferStart;
+
+    for (size_t i = 0; i < lines; i++) {
+        char str[MaxComLen] = "";
+        char arg[MaxArgLen] = "";
+        sscanf(index[i].startIndex, "%s%s", str, arg);
+
+        char *tagPointer = strchr(str, ':');
+        if (tagPointer != nullptr) continue;
+
+        if (strcmp(str, "JMP") == 0) {
+            binBuffer++;
+            for (size_t tag = 0; tag < lines; tag++) {
+                if (tagList[tag].tagName != nullptr) {
+                    char *a = tagList[tag].tagName;
+                    if (strncmp(arg, tagList[tag].tagName, strlen(arg)) == 0) {
+                        *((int *)binBuffer) = tagList[tag].tagByte;
+                    }
+                }
+            }
+            binBuffer += sizeof(int);
+        }
+
+#define DEF_CMD(name, num, argType, code) \
+            if (strcmp(str, #name) == 0) { \
+                secondParser(argType, &binBuffer, arg); \
+            } else
+
+#include "commands.h"
+        {}
 #undef DEF_CMD
     }
 
@@ -159,4 +194,52 @@ lineIndex *readTextFromFile(const char inPath[], char *text, size_t *textSize, s
     fillIndex(index, text, *textSize);
 
     return index;
+}
+
+void parser(int num, int argType, char **binBuffer, char *arg) {
+    assert(binBuffer);
+    assert(*binBuffer);
+    assert(arg);
+
+    if (argType == 0) {
+        sprintf(*binBuffer, "%c", num);
+        (*binBuffer)++;
+    }
+    else {
+        if (int digitArg = atoi(arg)) {
+            sprintf(*binBuffer, "%c", num);
+            (*binBuffer)++;
+
+            *((int *) *binBuffer) = digitArg;
+            *binBuffer += sizeof(int);
+        }
+        else if (isalpha(*arg)) {
+            char *xPointer = strchr(arg, 'x');
+            if (xPointer != nullptr) {
+                sprintf(*binBuffer, "%c", num + 10);
+                (*binBuffer)++;
+                sprintf(*binBuffer, "%c", *(xPointer - 1));
+                (*binBuffer)++;
+            }
+        }
+    }
+}
+
+void secondParser(int argType, char **binBuffer, char *arg) {
+    if (argType == 0) {
+        (*binBuffer)++;
+    }
+    else {
+        if (int digitArg = atoi(arg)) {
+            (*binBuffer)++;
+            (*binBuffer) += sizeof(int);
+        }
+        else if (isalpha(*arg)) {
+            char *xPointer = strchr(arg, 'x');
+
+            if (*xPointer == 'x') {
+                (*binBuffer) += 2;
+            }
+        }
+    }
 }

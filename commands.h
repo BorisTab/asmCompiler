@@ -45,10 +45,10 @@ DEF_CMD(POP, 6, 2, {
     break;
 })
 
-DEF_CMD(JMP, 7, 1, {
-    cur = buffer + *((int *)(++cur)) - 1;
-    break;
-})
+//DEF_CMD(JMP, 7, 1, {
+//    cur = buffer + *((int *)(++cur)) - 1;
+//    break;
+//})
 
 DEF_CMD(PUSH, 11, 2, {
     cur++;
