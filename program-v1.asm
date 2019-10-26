@@ -1,18 +1,12 @@
 PUSH 10
-PUSH 6
+PUSH 5
+CALL func1
+PUSH 7
+
+func1:
 ADD
-JMP sas
-PUSH 8
-PUSH 3
-SUB
+PUSH 2
 MUL
-PUSH 20
-DIV
-POP ax
-sas:
-PUSH 12
-JMP sos
-PUSH ax
-DIV
-sos:
+RET
+
 END

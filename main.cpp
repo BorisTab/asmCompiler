@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <cctype>
 #include <cstring>
-#include <map>
 
 const int MaxComLen = 16;
 const int MaxArgLen = 16;
@@ -59,18 +58,23 @@ int main() {
         if (tagPointer != nullptr) {
             tagList[i].tagName = index[i].startIndex;
             tagList[i].tagByte = (size_t) (binBuffer - bufferStart);
-
-            char *b = tagList[i].tagName;
         }
-        if (strcmp(str, "JMP") == 0) {
-            *binBuffer = 7;
-            binBuffer++;
-            *(int *) binBuffer = 0;
-            binBuffer += sizeof(int);
-        }
+//        if (strcmp(str, "JMP") == 0) {
+//            *binBuffer = 7;
+//            binBuffer++;
+//            *(int *) binBuffer = 0;
+//            binBuffer += sizeof(int);
+//        }
+//        if (strcmp(str, "CALL") == 0) {
+//            *binBuffer = 8;
+//            binBuffer++;
+//            *(int *) binBuffer = 0;
+//            binBuffer += sizeof(int);
+//        }
 
-#define DEF_CMD(name, num, argType, code) \
+#define DEF_CMD(name, num, argType, code, asmCode) \
             if (strcmp(str, #name) == 0) { \
+                asmCode \
                 parser(num, argType, &binBuffer, arg); \
             } else
 
@@ -89,21 +93,24 @@ int main() {
         char *tagPointer = strchr(str, ':');
         if (tagPointer != nullptr) continue;
 
-        if (strcmp(str, "JMP") == 0) {
+        if (*str == 'J' || strcmp(str, "CALL") == 0) {
             binBuffer++;
             for (size_t tag = 0; tag < lines; tag++) {
                 if (tagList[tag].tagName != nullptr) {
-                    char *a = tagList[tag].tagName;
                     if (strncmp(arg, tagList[tag].tagName, strlen(arg)) == 0) {
                         *((int *)binBuffer) = tagList[tag].tagByte;
+//                        printf("%s %ld\n",tagList[tag].tagName, tagList[tag].tagByte);
                     }
                 }
             }
             binBuffer += sizeof(int);
         }
 
-#define DEF_CMD(name, num, argType, code) \
-            if (strcmp(str, #name) == 0) { \
+#define DEF_CMD(name, num, argType, code, asmCode) \
+            if (*str == 'J' || strcmp(str, "CALL") == 0) { \
+                continue; \
+            } \
+            else if (strcmp(str, #name) == 0) { \
                 secondParser(argType, &binBuffer, arg); \
             } else
 
