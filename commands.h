@@ -48,40 +48,58 @@ DEF_CMD(POP, 6, 2, {
 DEF_CMD(JMP, 7, 1, {
     cur = buffer + *((int *)(++cur));
     break;
-}, {
-    *binBuffer = 7;
-    binBuffer++;
-    *(int *) binBuffer = 0;
-    binBuffer += sizeof(int);
-    continue;
-})
+}, DEF_JMP(7))
 
-DEF_CMD(CALL, 8, 1, {
+DEF_CMD(JA, 8, 1, {
+    DEF_CJ(>)
+    break;
+}, DEF_JMP(8))
+
+DEF_CMD(JAE, 9, 1, {
+    DEF_CJ(>=)
+    break;
+}, DEF_JMP(9))
+
+DEF_CMD(JB, 10, 1, {
+    DEF_CJ(<)
+    break;
+}, DEF_JMP(10))
+
+DEF_CMD(JBE, 11, 1, {
+    DEF_CJ(<=)
+    break;
+}, DEF_JMP(11))
+
+DEF_CMD(JE, 12, 1, {
+    DEF_CJ(==)
+    break;
+}, DEF_JMP(12))
+
+DEF_CMD(JNE, 13, 1, {
+    DEF_CJ(!=)
+    break;
+}, DEF_JMP(13))
+
+DEF_CMD(CALL, 14, 1, {
     stackPush(&callStk, cur + sizeof(char) + sizeof(int) - buffer);
     cur = buffer + *((int *)(++cur));
     break;
-}, {
-    *binBuffer = 8;
-    binBuffer++;
-    *(int *) binBuffer = 0;
-    binBuffer += sizeof(int);
-    continue;
-})
+}, DEF_JMP(14))
 
-DEF_CMD(RET, 9, 0, {
+DEF_CMD(RET, 15, 0, {
     if (stackSize(&callStk) != 0) cur = buffer + stkPop(&callStk);
     else cur++;
     break;
 }, {})
 
-DEF_CMD(PUSH, 11, 2, {
+DEF_CMD(PUSH, 51, 2, {
     cur++;
     stackPush(&cpuStk, registers[*cur - 'a']);
     cur++;
     break;
 }, {})
 
-DEF_CMD(POP, 16, 2, {
+DEF_CMD(POP, 56, 2, {
     cur++;
     registers[*cur - 'a'] = stkPop(&cpuStk);
     cur++;

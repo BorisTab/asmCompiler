@@ -32,6 +32,8 @@ void parser(int num, int argType, char **binBuffer, char *arg);
 
 void secondParser(int argType, char **binBuffer, char *arg);
 
+void jump(int num, char **binBuffer);
+
 int main() {
     char inPath[FILENAME_MAX] = "../program-v1.asm";
     char outPath[FILENAME_MAX] = "../program-v1.bin";
@@ -59,18 +61,6 @@ int main() {
             tagList[i].tagName = index[i].startIndex;
             tagList[i].tagByte = (size_t) (binBuffer - bufferStart);
         }
-//        if (strcmp(str, "JMP") == 0) {
-//            *binBuffer = 7;
-//            binBuffer++;
-//            *(int *) binBuffer = 0;
-//            binBuffer += sizeof(int);
-//        }
-//        if (strcmp(str, "CALL") == 0) {
-//            *binBuffer = 8;
-//            binBuffer++;
-//            *(int *) binBuffer = 0;
-//            binBuffer += sizeof(int);
-//        }
 
 #define DEF_CMD(name, num, argType, code, asmCode) \
             if (strcmp(str, #name) == 0) { \
@@ -78,8 +68,13 @@ int main() {
                 parser(num, argType, &binBuffer, arg); \
             } else
 
+#define DEF_JMP(num) \
+            jump(num, &binBuffer); \
+            continue;
+
             #include "commands.h"
         {}
+#undef DEF_JMP
 #undef DEF_CMD
     }
 
@@ -223,7 +218,7 @@ void parser(int num, int argType, char **binBuffer, char *arg) {
         else if (isalpha(*arg)) {
             char *xPointer = strchr(arg, 'x');
             if (xPointer != nullptr) {
-                sprintf(*binBuffer, "%c", num + 10);
+                sprintf(*binBuffer, "%c", num + 50);
                 (*binBuffer)++;
                 sprintf(*binBuffer, "%c", *(xPointer - 1));
                 (*binBuffer)++;
@@ -233,6 +228,10 @@ void parser(int num, int argType, char **binBuffer, char *arg) {
 }
 
 void secondParser(int argType, char **binBuffer, char *arg) {
+    assert(binBuffer);
+    assert(*binBuffer);
+    assert(arg);
+
     if (argType == 0) {
         (*binBuffer)++;
     }
@@ -249,4 +248,14 @@ void secondParser(int argType, char **binBuffer, char *arg) {
             }
         }
     }
+}
+
+void jump(int num, char **binBuffer) {
+    assert(binBuffer);
+    assert(*binBuffer);
+
+    **binBuffer = (char) num;
+    (*binBuffer)++;
+    *((int *) *binBuffer) = 0;
+    *binBuffer += sizeof(int);
 }

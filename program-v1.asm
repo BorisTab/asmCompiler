@@ -1,12 +1,9 @@
-PUSH 10
-PUSH 5
-CALL func1
-PUSH 7
-
-func1:
+PUSH 11
+PUSH -1
+JNE sas
 ADD
-PUSH 2
-MUL
-RET
+END
 
+sas:
+SUB
 END
