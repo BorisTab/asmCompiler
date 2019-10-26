@@ -92,6 +92,12 @@ DEF_CMD(RET, 15, 0, {
     break;
 }, {})
 
+DEF_CMD(OUT, 16, 0, {
+    printf("%d\n", stkPop(&cpuStk));
+    cur++;
+    break;
+}, {})
+
 DEF_CMD(PUSH, 51, 2, {
     cur++;
     stackPush(&cpuStk, registers[*cur - 'a']);
