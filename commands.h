@@ -98,6 +98,20 @@ DEF_CMD(OUT, 16, 0, {
     break;
 }, {})
 
+DEF_CMD(IN, 17, 0, {
+    int val = 0;
+    scanf("%d", &val);
+    stackPush(&cpuStk, val);
+    cur++;
+    break;
+}, {})
+
+DEF_CMD(SQRT, 18, 0, {
+    stackPush(&cpuStk, sqrt(stkPop(&cpuStk)));
+    cur++;
+    break;
+}, {})
+
 DEF_CMD(PUSH, 51, 2, {
     cur++;
     stackPush(&cpuStk, registers[*cur - 'a']);
