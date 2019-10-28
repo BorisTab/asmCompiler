@@ -43,6 +43,8 @@ void jump(int num, char **binBuffer);
 
 char *asmParser(size_t lines, lineIndex *index, size_t *bufferLen);
 
+void jumpsFill(size_t lines, tag *tagList, char *arg, char **binBuffer);
+
 int main(const int argc, char * const argv[]) {
     char *inPath = argv[argc - 1];
     char *pathPoint = strrchr(inPath, '.');
@@ -291,14 +293,9 @@ char *asmParser(size_t lines, lineIndex *index, size_t *bufferLen) {
 
         if (*str == 'J' || strcmp(str, "CALL") == 0) {
             binBuffer++;
-            for (size_t tag = 0; tag < lines; tag++) {
-                if (tagList[tag].tagName != nullptr) {
-                    if (strncmp(arg, tagList[tag].tagName, strlen(arg)) == 0) {
-                        *((int *)binBuffer) = tagList[tag].tagByte;
-//                        printf("%s %ld\n",tagList[tag].tagName, tagList[tag].tagByte);
-                    }
-                }
-            }
+
+            jumpsFill(lines, tagList, arg, &binBuffer);
+
             binBuffer += sizeof(int);
         }
 
@@ -319,5 +316,16 @@ char *asmParser(size_t lines, lineIndex *index, size_t *bufferLen) {
 
     free(tagList);
     return bufferStart;
+}
+
+void jumpsFill(size_t lines, tag *tagList, char *arg, char **binBuffer) {
+    for (size_t tag = 0; tag < lines; tag++) {
+        if (tagList[tag].tagName != nullptr) {
+            if (strncmp(arg, tagList[tag].tagName, strlen(arg)) == 0) {
+                *((int *) *binBuffer) = tagList[tag].tagByte;
+//                        printf("%s %ld\n",tagList[tag].tagName, tagList[tag].tagByte);
+            }
+        }
+    }
 }
 
