@@ -8,6 +8,11 @@
 const int MaxComLen = 16;
 const int MaxArgLen = 16;
 
+enum errors {
+    SUCCESS = 0,
+    WRONG_FILE = 1,
+};
+
 struct lineIndex {
     char *startIndex;
     char *endIndex;
@@ -34,9 +39,18 @@ void secondParser(int argType, char **binBuffer, char *arg);
 
 void jump(int num, char **binBuffer);
 
-int main() {
-    char inPath[FILENAME_MAX] = "../program-v1.asm";
-    char outPath[FILENAME_MAX] = "../program-v1.bin";
+int main(const int argc, char * const argv[]) {
+    char *inPath = argv[argc - 1];
+    char *pathPoint = strrchr(inPath, '.');
+
+    if (strcmp(pathPoint, ".asm") != 0) {
+        printf("Wrong file type");
+        return WRONG_FILE;
+    }
+
+    char outPath[FILENAME_MAX] = "";
+    strncpy(outPath, inPath, pathPoint - inPath);
+    strcpy(outPath + (pathPoint - inPath), ".bin");
 
     FILE *binFile = fopen(outPath, "wb");
 
@@ -198,6 +212,12 @@ lineIndex *readTextFromFile(const char inPath[], char *text, size_t *textSize, s
     return index;
 }
 
+//! first parser. It doesn't fill jumps
+//!
+//! \param[in] num command number
+//! \param[in] argType type of argument after command
+//! \param[out] binBuffer out binary buffer
+//! \param[in] arg argument to write to buffer
 void parser(int num, int argType, char **binBuffer, char *arg) {
     assert(binBuffer);
     assert(*binBuffer);
@@ -208,7 +228,8 @@ void parser(int num, int argType, char **binBuffer, char *arg) {
         (*binBuffer)++;
     }
     else {
-        if (int digitArg = atoi(arg)) {
+        if (isdigit(*arg) || (*arg == '-' && isdigit(*(arg + 1)))) {
+            int digitArg = atoi(arg);
             sprintf(*binBuffer, "%c", num);
             (*binBuffer)++;
 
@@ -227,6 +248,11 @@ void parser(int num, int argType, char **binBuffer, char *arg) {
     }
 }
 
+//! second parser. Fill jumps
+//!
+//! \param[in] argType type of argument after command
+//! \param[out] binBuffer out binary buffer
+//! \param[in] arg argument to write to buffer
 void secondParser(int argType, char **binBuffer, char *arg) {
     assert(binBuffer);
     assert(*binBuffer);
@@ -236,7 +262,7 @@ void secondParser(int argType, char **binBuffer, char *arg) {
         (*binBuffer)++;
     }
     else {
-        if (int digitArg = atoi(arg)) {
+        if (isdigit(*arg) || (*arg == '-' && isdigit(*(arg + 1)))) {
             (*binBuffer)++;
             (*binBuffer) += sizeof(int);
         }
@@ -250,6 +276,10 @@ void secondParser(int argType, char **binBuffer, char *arg) {
     }
 }
 
+//! Fill jumps with zero
+//!
+//! \param[in] num command number
+//! \param[out] binBuffer out binary buffer
 void jump(int num, char **binBuffer) {
     assert(binBuffer);
     assert(*binBuffer);
