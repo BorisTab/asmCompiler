@@ -35,11 +35,13 @@ void fillIndex(lineIndex *index, char *text, size_t textSize);
 
 lineIndex *readTextFromFile(const char inPath[], char *text, size_t *textSize, size_t *rows);
 
-void parser(int num, int argType, char **binBuffer, char *arg);
+void processingStrOnFirstPass(int num, int argType, char **binBuffer, char *arg);
 
-void secondParser(int argType, char **binBuffer, char *arg);
+void ProcessingStrOnSecondPass(int argType, char **binBuffer, char *arg);
 
 void jump(int num, char **binBuffer);
+
+char *asmParser(size_t lines, lineIndex *index, size_t *bufferLen);
 
 int main(const int argc, char * const argv[]) {
     char *inPath = argv[argc - 1];
@@ -62,75 +64,10 @@ int main(const int argc, char * const argv[]) {
 
     lineIndex *index = readTextFromFile(inPath, buffer, &programSize, &lines);
 
-    char *binBuffer = (char *) calloc(lines * (MaxComLen + MaxArgLen + 3), sizeof(char));
-    char *bufferStart = binBuffer;
+    size_t bufferLen = 0;
+    char *bufferStart = asmParser(lines, index, &bufferLen);
 
-    tag *tagList = (tag *) calloc(lines, sizeof(tag));
-
-    for (size_t i = 0; i < lines; i++) {
-        char str[MaxComLen] = "";
-        char arg[MaxArgLen] = "";
-        sscanf(index[i].startIndex, "%s%s", str, arg);
-
-        char *tagPointer = strchr(str, ':');
-        if (tagPointer != nullptr) {
-            tagList[i].tagName = index[i].startIndex;
-            tagList[i].tagByte = (size_t) (binBuffer - bufferStart);
-        }
-
-#define DEF_CMD(name, num, argType, code, asmCode) \
-            if (strcmp(str, #name) == 0) { \
-                asmCode \
-                parser(num, argType, &binBuffer, arg); \
-            } else
-
-#define DEF_JMP(num) \
-            jump(num, &binBuffer); \
-            continue;
-
-            #include "commands.h"
-        {}
-#undef DEF_JMP
-#undef DEF_CMD
-    }
-
-    binBuffer = bufferStart;
-
-    for (size_t i = 0; i < lines; i++) {
-        char str[MaxComLen] = "";
-        char arg[MaxArgLen] = "";
-        sscanf(index[i].startIndex, "%s%s", str, arg);
-
-        char *tagPointer = strchr(str, ':');
-        if (tagPointer != nullptr) continue;
-
-        if (*str == 'J' || strcmp(str, "CALL") == 0) {
-            binBuffer++;
-            for (size_t tag = 0; tag < lines; tag++) {
-                if (tagList[tag].tagName != nullptr) {
-                    if (strncmp(arg, tagList[tag].tagName, strlen(arg)) == 0) {
-                        *((int *)binBuffer) = tagList[tag].tagByte;
-//                        printf("%s %ld\n",tagList[tag].tagName, tagList[tag].tagByte);
-                    }
-                }
-            }
-            binBuffer += sizeof(int);
-        }
-
-#define DEF_CMD(name, num, argType, code, asmCode) \
-            if (*str == 'J' || strcmp(str, "CALL") == 0) { \
-                continue; \
-            } \
-            else if (strcmp(str, #name) == 0) { \
-                secondParser(argType, &binBuffer, arg); \
-            } else
-
-#include "commands.h"
-        {}
-#undef DEF_CMD
-    }
-
-    fwrite(bufferStart, sizeof(char), binBuffer - bufferStart, binFile);
+    fwrite(bufferStart, sizeof(char), bufferLen, binFile);
 
     free(buffer);
     fclose(binFile);
@@ -214,13 +151,13 @@ lineIndex *readTextFromFile(const char inPath[], char *text, size_t *textSize, s
     return index;
 }
 
-//! first parser. It doesn't fill jumps
+//! first pass. It doesn't fill jumps
 //!
 //! \param[in] num command number
 //! \param[in] argType type of argument after command
 //! \param[out] binBuffer out binary buffer
 //! \param[in] arg argument to write to buffer
-void parser(int num, int argType, char **binBuffer, char *arg) {
+void processingStrOnFirstPass(int num, int argType, char **binBuffer, char *arg) {
     assert(binBuffer);
     assert(*binBuffer);
     assert(arg);
@@ -258,12 +195,12 @@ void parser(int num, int argType, char **binBuffer, char *arg) {
     }
 }
 
-//! second parser. Fill jumps
+//! second pass. Fill jumps
 //!
 //! \param[in] argType type of argument after command
 //! \param[out] binBuffer out binary buffer
 //! \param[in] arg argument to write to buffer
-void secondParser(int argType, char **binBuffer, char *arg) {
+void ProcessingStrOnSecondPass(int argType, char **binBuffer, char *arg) {
     assert(binBuffer);
     assert(*binBuffer);
     assert(arg);
@@ -299,3 +236,88 @@ void jump(int num, char **binBuffer) {
     *((int *) *binBuffer) = 0;
     *binBuffer += sizeof(int);
 }
+
+//! parser for asm
+//!
+//! \param[in] lines number lines in asm file
+//! \param[in] index list of lines
+//! \param[out] bufferLen buffer length
+//! \return pointer to bin buffer
+char *asmParser(size_t lines, lineIndex *index, size_t *bufferLen) {
+    assert(index);
+    assert(bufferLen);
+
+    char *binBuffer = (char *) calloc(lines * (MaxComLen + MaxArgLen), sizeof(char));
+    char *bufferStart = binBuffer;
+
+    tag *tagList = (tag *) calloc(lines, sizeof(tag));
+
+    for (size_t i = 0; i < lines; i++) {
+        char str[MaxComLen] = "";
+        char arg[MaxArgLen] = "";
+        sscanf(index[i].startIndex, "%s%s", str, arg);
+
+        char *tagPointer = strchr(str, ':');
+        if (tagPointer != nullptr) {
+            tagList[i].tagName = index[i].startIndex;
+            tagList[i].tagByte = (size_t) (binBuffer - bufferStart);
+        }
+
+#define DEF_CMD(name, num, argType, code, asmCode) \
+            if (strcmp(str, #name) == 0) { \
+                asmCode \
+                processingStrOnFirstPass(num, argType, &binBuffer, arg); \
+            } else
+
+#define DEF_JMP(num) \
+            jump(num, &binBuffer); \
+            continue;
+
+#include "commands.h"
+        {}
+#undef DEF_JMP
+#undef DEF_CMD
+    }
+
+    binBuffer = bufferStart;
+
+    for (size_t i = 0; i < lines; i++) {
+        char str[MaxComLen] = "";
+        char arg[MaxArgLen] = "";
+        sscanf(index[i].startIndex, "%s%s", str, arg);
+
+        char *tagPointer = strchr(str, ':');
+        if (tagPointer != nullptr) continue;
+
+        if (*str == 'J' || strcmp(str, "CALL") == 0) {
+            binBuffer++;
+            for (size_t tag = 0; tag < lines; tag++) {
+                if (tagList[tag].tagName != nullptr) {
+                    if (strncmp(arg, tagList[tag].tagName, strlen(arg)) == 0) {
+                        *((int *)binBuffer) = tagList[tag].tagByte;
+//                        printf("%s %ld\n",tagList[tag].tagName, tagList[tag].tagByte);
+                    }
+                }
+            }
+            binBuffer += sizeof(int);
+        }
+
+#define DEF_CMD(name, num, argType, code, asmCode) \
+            if (*str == 'J' || strcmp(str, "CALL") == 0) { \
+                continue; \
+            } \
+            else if (strcmp(str, #name) == 0) { \
+                ProcessingStrOnSecondPass(argType, &binBuffer, arg); \
+            } else
+
+#include "commands.h"
+        {}
+#undef DEF_CMD
+    }
+
+    *bufferLen = binBuffer - bufferStart;
+
+    free(tagList);
+    return bufferStart;
+}
+
