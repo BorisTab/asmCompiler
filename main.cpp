@@ -11,6 +11,8 @@ const int MaxArgLen = 16;
 enum errors {
     SUCCESS = 0,
     WRONG_FILE = 1,
+    REGISTER_IS_NOT_EXIST = 2,
+    SYNTAX_ERROR = 3,
 };
 
 struct lineIndex {
@@ -238,12 +240,20 @@ void parser(int num, int argType, char **binBuffer, char *arg) {
         }
         else if (isalpha(*arg)) {
             char *xPointer = strchr(arg, 'x');
-            if (xPointer != nullptr) {
+            if (xPointer != nullptr && *(xPointer - 1) >= 'a' && *(xPointer - 1) <= 'd') {
                 sprintf(*binBuffer, "%c", num + 50);
                 (*binBuffer)++;
                 sprintf(*binBuffer, "%c", *(xPointer - 1));
                 (*binBuffer)++;
             }
+            else {
+                printf("Error: register is not exist\n");
+                exit(REGISTER_IS_NOT_EXIST);
+            }
+        }
+        else {
+            printf("Error: Syntax error");
+            exit(SYNTAX_ERROR);
         }
     }
 }
