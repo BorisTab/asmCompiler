@@ -39,7 +39,7 @@ void processingStrOnFirstPass(int num, int argType, char **binBuffer, char *arg)
 
 void ProcessingStrOnSecondPass(int argType, char **binBuffer, char *arg);
 
-void jump(int num, char **binBuffer);
+void fillJumpsWithZero(int num, char **binBuffer);
 
 char *asmParser(size_t lines, lineIndex *index, size_t *bufferLen);
 
@@ -229,7 +229,7 @@ void ProcessingStrOnSecondPass(int argType, char **binBuffer, char *arg) {
 //!
 //! \param[in] num command number
 //! \param[out] binBuffer out binary buffer
-void jump(int num, char **binBuffer) {
+void fillJumpsWithZero(int num, char **binBuffer) {
     assert(binBuffer);
     assert(*binBuffer);
 
@@ -272,7 +272,7 @@ char *asmParser(size_t lines, lineIndex *index, size_t *bufferLen) {
             } else
 
 #define DEF_JMP(num) \
-            jump(num, &binBuffer); \
+            fillJumpsWithZero(num, &binBuffer); \
             continue;
 
 #include "commands.h"
